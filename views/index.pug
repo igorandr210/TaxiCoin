@@ -1,0 +1,111 @@
+doctype html
+if(name=="Guest")
+form(
+    action='/login',
+    method='post',
+    id='loginform'
+)
+    label(for="login")
+        |Логин: 
+    br
+    input(type="text",id='login',name='login')
+    br
+    label(for="password")
+        |Пароль:
+    br
+    input(type="password",id='password',name='password')
+    br
+    input(type="submit",id='subbutton')
+form(
+    action='/register',
+    method='post',
+    id='regform'
+)
+    label(for="login1")
+        |Логин: 
+    br
+    input(type="text",id='login1',name='login')
+    br
+    label(for="password1")
+        |Пароль:
+    br
+    input(type="password",id='password1',name='password')
+    br
+    label(for="privkey",class="privkey")
+        |PrivateKey:
+    br(class='privkey')
+    input(type="text",class='privkey',name='privatekey',value=null)
+    br(class='privkey')
+    select(name="role")
+        option(value="Заказчик") Заказчик
+        option(value="Исполнитель") Исполнитель
+    br
+    input(type="submit",id='regbutton' )
+button(id='registered' onclick="hideRegForm()") Уже зарегистрированы
+
+script(src='/web3.min.js')
+script(src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js")
+
+script.
+    function hideRegForm(){
+        var x = document.getElementById('regform');
+        var y = document.getElementById('loginform');
+    if (x.style.visibility === 'hidden') {
+        x.style.visibility = 'visible';
+        y.style.visibility = 'hidden';
+        
+    } else {
+        y.style.visibility = 'visible';
+        x.style.visibility = 'hidden';
+    }
+    }
+    window.addEventListener('load', function() {
+    //$('#loginform').hide();
+    document.getElementById('regform').style.visibility = "hidden";
+    })
+script.
+    $("#regform").submit(function(e) {
+    var url = "/register";
+    $.ajax({
+           type: "POST",
+           url: url,
+           data: $("#regform").serialize(),
+           success: function(data)
+           {
+               if(data.status==="OK"){
+                   location.reload();
+               } else{
+                   e.preventDefault();
+                   alert(data.status);
+               }
+           }
+         });
+    e.preventDefault(); // avoid to execute the actual submit of the form.
+    });
+    $("#loginform").submit(function(e) {
+    var url = "/login"; // the script where you handle the form input.
+    $.ajax({
+    
+           type: "POST",
+           url: url,
+           data: $("#loginform").serialize(), // serializes the form's elements.
+           success: function(data)
+           {
+               if(data.status==="OK"){
+                   location.reload();
+               } else{
+                   e.preventDefault();
+                   alert(data.status);
+               }
+           }
+         });
+    e.preventDefault(); // avoid to execute the actual submit of the form.
+    });
+    window.addEventListener('load', function() {
+    // Checking if Web3 has been injected by the browser (Mist/MetaMask)
+    if (typeof web3 !== 'undefined') {
+
+    $('.privkey').hide();
+    var provider = web3.currentProvider;
+    }
+    })

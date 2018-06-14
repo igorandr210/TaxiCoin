@@ -1,0 +1,262 @@
+doctype html
+h1 Hello,#{username}!
+div 
+  p Текущий баланс:
+  p(id='Balance') 0
+  p TXC
+  button(onclick="App.getCoins()") Пополнить 1000 TXC
+if(role=='Заказчик')
+  p Активные заказы:
+  table
+    tr
+        td ID
+        td Откуда
+        td Куда
+        td Цена
+        td Заказчик
+        td Исполнитель
+        td Статус 
+    each val in orders
+      tr
+        td #{val.id}
+        td #{val.frompoint}
+        td #{val.topoint}
+        td #{val.price}
+        td #{val.customer}
+        td #{val.executor}
+        td #{val.status}
+        td
+          if(val.status=='Принят на исполнение')
+            button(onclick='AceptOrder('+val.id+')') Подтвердить исполнение
+          if(val.status=='Ожидание оплаты')
+            button(onclick='App.execTransfer('+val.id+','+val.price+')') Оплатить
+          if(val.status=='Ожидание оплаты')
+            button(onclick='RemoveOrder('+val.id+','+val.price+')') Удалить
+  p Куда едем?
+  form(action="/createorder",id='orderform')
+    p Откуда
+    input(type="text", name="frompoint")
+    p Куда
+    input(type="text",name="topoint")
+    input(type="hidden",name='address',id="address")
+    p Цена
+    input(type="text",name='price',id='price')
+    input(type="submit", id='subbutton')
+else
+  p Активные заказы:
+  table
+    tr
+        td ID
+        td Откуда
+        td Куда
+        td Цена
+        td Заказчик
+        td Исполнитель
+        td Статус 
+    each val in orders
+      tr
+        td #{val.id}
+        td #{val.frompoint}
+        td #{val.topoint}
+        td #{val.price}
+        td #{val.customer}
+        td #{val.executor}
+        td #{val.status}
+        td
+          if(val.status=='Ожидает исполнения')
+            button(onclick='getOrder('+val.id+')') Взять заказ
+  
+button(id='exit',onclick='exit()') Выход
+script(src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js")
+
+
+script(src='/web3.min2.js')
+script(src="/truffle-contract.js")
+script(src="https://cdn.ethers.io/scripts/ethers-v3.min.js")
+
+  
+script.
+    App = {
+  web3Provider: null,
+  contracts: {},
+
+  init: function() {
+    return App.initWeb3();
+  },
+
+  initWeb3: function() {
+    if (typeof web3 !== 'undefined') {
+      App.web3Provider = web3.currentProvider;
+      web3 = new Web3(web3.currentProvider);
+    } else {
+    const web3Url = `https://kovan.infura.io/wEt3RDye41RKD5g4XKNS`;
+    App.web3Provider = new Web3.providers.HttpProvider(web3Url);
+      web3 = new Web3(App.web3Provider);
+    }
+    return App.initContract();
+  },
+
+  initContract: function() {
+    $.getJSON('/TaxiCoin', function(data) {
+      // Get the necessary contract artifact file and instantiate it with truffle-contract.
+      var TutorialTokenArtifact = data;
+      App.contracts.TutorialToken = TruffleContract(TutorialTokenArtifact);
+      
+      // Set the provider for our contract.
+      App.contracts.TutorialToken.setProvider(App.web3Provider);
+      
+      App.contracts.TutorialToken.at('0x53ac3773d412b2cada3dcbde85e551efb7b1edba').then(function(instance) {
+        tutorialTokenInstance = instance;
+
+       tutorialTokenInstance.PayedForOrder(function(error, result) {
+      if (!error)
+      console.log('log:');
+        console.log(result);
+      });
+      })
+      // Use our contract to retieve and mark the adopted pets.
+      return App.getBalances();
+    });
+  },
+  execTransfer: function(id,price) {
+    var amount = price;
+    var tutorialTokenInstance;
+    web3.eth.getAccounts(function(error, accounts) {
+      if (error) {
+        console.log(error);
+      }
+      var account = accounts[0];
+      App.contracts.TutorialToken.at('0x53ac3773d412b2cada3dcbde85e551efb7b1edba').then(function(instance) {
+        tutorialTokenInstance = instance;
+        return tutorialTokenInstance.PayForOrder('0xf7323EAa895Ac13eAeBE5863CFf8471f41C9Be2a', amount,id);
+      }).then(function(result) {
+        alert('Transfer Successful!');
+        location.reload();
+      }).catch(function(err) {
+        console.log(err.message);
+      });
+    });
+  },
+  handleTransfer: function(id) {
+    var amount = parseInt($('#price').val());
+    var tutorialTokenInstance;
+    web3.eth.getAccounts(function(error, accounts) {
+      if (error) {
+        console.log(error);
+      }
+      var account = accounts[0];
+      App.contracts.TutorialToken.at('0x53ac3773d412b2cada3dcbde85e551efb7b1edba').then(function(instance) {
+        tutorialTokenInstance = instance;
+        console.log(1);
+        return tutorialTokenInstance.PayForOrder('0xf7323EAa895Ac13eAeBE5863CFf8471f41C9Be2a', amount,id);
+      }).then(function(result) {
+        alert('Transfer Successful!');
+        location.reload();
+      }).catch(function(err) {
+        console.log(err.message);
+      });
+    });
+  },
+  getCoins: function(){web3.eth.getAccounts(function(error, accounts) {
+      if (error) {
+        console.log(error);
+      }
+
+      var account = accounts[0];
+        App.contracts.TutorialToken.at('0x53ac3773d412b2cada3dcbde85e551efb7b1edba').then(function(instance) {
+        tutorialTokenInstance = instance;
+        tutorialTokenInstance.mint({from: account, value: 1000});
+        return tutorialTokenInstance.balanceOf(account);
+      }).then(function(result) {
+        balance = result.c[0];
+
+        $('#Balance').text(balance);
+      }).catch(function(err) {
+        console.log(err.message);
+      });
+    });
+        
+  },
+
+  getBalances: function() {
+    console.log('Getting balances...');
+    var tutorialTokenInstance;
+    web3.eth.getAccounts(function(error, accounts) {
+      if (error) {
+        console.log(error);
+      }
+      var account = accounts[0];
+      var address=document.getElementById("address");
+      if(address)
+        address.value=account;
+      console.log(account);
+      App.contracts.TutorialToken.at('0x53ac3773d412b2cada3dcbde85e551efb7b1edba').then(function(instance) {
+        tutorialTokenInstance = instance;
+        console.log('ins');
+        return tutorialTokenInstance.balanceOf(account);
+      }).then(function(result) {
+        balance = result.c;
+        console.log(result);
+        $('#Balance').text(balance);
+      }).catch(function(err) {
+        console.log(err.message);
+      });
+    });
+  }
+  };
+  $(function() {
+    $(window).load(function() {
+      App.init();
+    });
+  });
+  
+script.
+  function AceptOrder(id){
+    $.ajax({
+    type: 'POST',
+    url: '/acceptorder',
+    data: {id:id}
+  })
+  }
+  function RemoveOrder(id){
+    $.ajax({
+    type: 'POST',
+    url: '/removeOrder',
+    data: {id:id}
+  })
+  }
+  function getOrder(id){
+    $.ajax({
+    type: 'POST',
+    url: '/getorder',
+    data: {id:id,executorAddress:web3.eth.accounts[0]}
+  })
+  }
+  $("#orderform").submit(function(e) {
+    var url = "/createorder";
+    $.ajax({
+           type: "POST",
+           url: url,
+           data: $("#orderform").serialize(),
+           success: function(data)
+           {
+               if(data.status!="Error"){
+                   App.handleTransfer(data.status);
+               } else{
+                   e.preventDefault();
+                   alert(data.status);
+               }
+           }
+         });
+    
+    e.preventDefault(); // avoid to execute the actual submit of the form.
+    })
+  function exit(){
+    $.ajax({
+    method:"GET",
+    url: "logout",
+    context: document.body
+    }).done(function() {
+      location.reload();
+    });
+  }    
